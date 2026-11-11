@@ -1,0 +1,71 @@
+{"today": "2026-11-11", "id": "r01", "stage": "router", "text": "payé 4€ café, rappelle-moi la CAF lundi, idée: agent LinkedIn vidéo", "expected": {"types": ["finance", "task", "braindump"]}}
+{"today": "2026-11-11", "id": "r02", "stage": "router", "text": "got 50 from mom, also need to buy shampo before friday", "expected": {"types": ["finance", "task"]}}
+{"today": "2026-11-11", "id": "r03", "stage": "router", "text": "retiré 40 au DAB", "expected": {"types": ["finance"]}}
+{"today": "2026-11-11", "id": "r04", "stage": "router", "text": "pourquoi les LLM hallucinent plus en français ?", "expected": {"types": ["braindump"]}}
+{"today": "2026-11-11", "id": "r05", "stage": "router", "text": "faut que je rende le TP d'algo avant jeudi", "expected": {"types": ["task"]}}
+{"today": "2026-11-11", "id": "r06", "stage": "router", "text": "cours SED: un système à événements discrets change d'état à des instants discrets, ex file d'attente. les réseaux de Petri modélisent la concurrence et la synchronisation.", "expected": {"types": ["note"]}}
+{"today": "2026-11-11", "id": "r07", "stage": "router", "text": "Yanis m'a conseillé le film Past Lives", "expected": {"types": ["braindump"]}}
+{"today": "2026-11-11", "id": "r08", "stage": "router", "text": "uber 12.40 hier soir revolut", "expected": {"types": ["finance"]}}
+{"today": "2026-11-11", "id": "r09", "stage": "router", "text": "acheter du lait et appeler maman", "expected": {"types": ["task", "task"]}}
+{"today": "2026-11-11", "id": "r10", "stage": "router", "text": "idée d'app: tracker de révisions avec répétition espacée", "expected": {"types": ["braindump"]}}
+{"today": "2026-11-11", "id": "r11", "stage": "router", "text": "CAF versée 180€ + virer 50 sur épargne", "expected": {"types": ["finance"]}}
+{"today": "2026-11-11", "id": "r12", "stage": "router", "text": "notes réunion stage: tuteur = M. Durand, sujet = agents RAG, rapport intermédiaire 10 pages max, soutenance 20 min. faut que j'envoie le plan à M. Durand avant vendredi", "expected": {"types": ["note", "task"]}}
+{"today": "2026-11-11", "id": "r13", "stage": "router", "text": "annule", "expected": {"types": ["command_like"]}}
+{"today": "2026-11-11", "id": "r14", "stage": "router", "text": "spent 9 on spotify", "expected": {"types": ["finance"]}}
+{"today": "2026-11-11", "id": "r15", "stage": "router", "text": "tester obsidian pour prendre des notes", "expected": {"types": ["braindump"]}}
+{"today": "2026-11-11", "id": "r16", "stage": "router", "text": "rdv dentiste mardi 14h", "expected": {"types": ["task"]}}
+{"today": "2026-11-11", "id": "r17", "stage": "router", "text": "c koi le meilleur moyen d'apprendre le rust ?", "expected": {"types": ["braindump"]}}
+{"today": "2026-11-11", "id": "r18", "stage": "router", "text": "payé le loyer 420 bnp et faut que je pense à résilier free mobile", "expected": {"types": ["finance", "task"]}}
+{"today": "2026-11-11", "id": "f01", "stage": "finance", "text": "payé 4€ café", "expected": {"transactions": [{"kind": "expense", "amount": 4, "category": "Food & Dining", "account": null, "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f02", "stage": "finance", "text": "retiré 40 au DAB bnp hier", "expected": {"transactions": [{"kind": "transfer", "amount": 40, "from_account": "BNP", "to_account": "Cash Wallet", "date": "2026-11-10"}]}}
+{"today": "2026-11-11", "id": "f03", "stage": "finance", "text": "remboursement amazon 23,99 sur revolut", "expected": {"transactions": [{"kind": "income", "amount": 23.99, "income_source": "Refund", "account": "Revolut", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f04", "stage": "finance", "text": "CAF 180 reçu sur bnp", "expected": {"transactions": [{"kind": "income", "amount": 180, "income_source": "Scholarship/CAF", "account": "BNP", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f05", "stage": "finance", "text": "mis 50 de côté sur l'épargne depuis revolut", "expected": {"transactions": [{"kind": "transfer", "amount": 50, "from_account": "Revolut", "to_account": "Savings Account", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f06", "stage": "finance", "text": "uber 12.40 hier soir revolut", "expected": {"transactions": [{"kind": "expense", "amount": 12.4, "category": "Transportation", "account": "Revolut", "date": "2026-11-10"}]}}
+{"today": "2026-11-11", "id": "f07", "stage": "finance", "text": "courses lidl 23,15 en espèces", "expected": {"transactions": [{"kind": "expense", "amount": 23.15, "category": "Food & Dining", "account": "Cash Wallet", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f08", "stage": "finance", "text": "spent 15 dollars on netflix", "expected": {"transactions": [{"kind": "expense", "amount": 15, "category": "Entertainment", "account": null, "date": "2026-11-11", "currency": "USD"}]}}
+{"today": "2026-11-11", "id": "f09", "stage": "finance", "text": "maman m'a envoyé 100 sur revolut", "expected": {"transactions": [{"kind": "income", "amount": 100, "income_source": "Family", "account": "Revolut", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f10", "stage": "finance", "text": "facture free 9,99 prélevée bnp", "expected": {"transactions": [{"kind": "expense", "amount": 9.99, "category": "Bills & Utilities", "account": "BNP", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f11", "stage": "finance", "text": "pharmacie 7,50 cb bnp samedi dernier", "expected": {"transactions": [{"kind": "expense", "amount": 7.5, "category": "Healthcare", "account": "BNP", "date": "2026-11-07"}]}}
+{"today": "2026-11-11", "id": "f12", "stage": "finance", "text": "recharge revolut 30 depuis bnp", "expected": {"transactions": [{"kind": "transfer", "amount": 30, "from_account": "BNP", "to_account": "Revolut", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f13", "stage": "finance", "text": "payé 4€ café et 12€ cinéma revolut", "expected": {"transactions": [{"kind": "expense", "amount": 4, "category": "Food & Dining", "account": "Revolut", "date": "2026-11-11"}, {"kind": "expense", "amount": 12, "category": "Entertainment", "account": "Revolut", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f14", "stage": "finance", "text": "salaire mcdo 450 sur bnp", "expected": {"transactions": [{"kind": "income", "amount": 450, "income_source": "Job", "account": "BNP", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f15", "stage": "finance", "text": "remboursé par Yanis 20 en liquide pour la pizza", "expected": {"transactions": [{"kind": "income", "amount": 20, "income_source": "Refund", "account": "Cash Wallet", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f16", "stage": "finance", "text": "billet de train 34 sncf revolut", "expected": {"transactions": [{"kind": "expense", "amount": 34, "category": "Transportation", "account": "Revolut", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "f17", "stage": "finance", "text": "kebab 8,50 hier en cash", "expected": {"transactions": [{"kind": "expense", "amount": 8.5, "category": "Food & Dining", "account": "Cash Wallet", "date": "2026-11-10"}]}}
+{"today": "2026-11-11", "id": "f18", "stage": "finance", "text": "virement de 200 de bnp vers revolut", "expected": {"transactions": [{"kind": "transfer", "amount": 200, "from_account": "BNP", "to_account": "Revolut", "date": "2026-11-11"}]}}
+{"today": "2026-11-11", "id": "t01", "stage": "task", "text": "rappelle-moi la CAF lundi", "expected": {"due_date": "2026-11-16", "priority": "High", "tags": ["Personel"]}}
+{"today": "2026-11-11", "id": "t02", "stage": "task", "text": "envoyer le CV à Mistral avant vendredi", "expected": {"due_date": "2026-11-12", "priority": "High", "tags": ["Work"], "goal": "Land an AI internship starting April 2027"}}
+{"today": "2026-11-11", "id": "t03", "stage": "task", "text": "réviser probas dans 2 semaines", "expected": {"due_date": "2026-11-25", "priority": "Low", "tags": ["Studies"]}}
+{"today": "2026-11-11", "id": "t04", "stage": "task", "text": "buy shampoo", "expected": {"due_date": null, "priority": "Low", "tags": ["Chores"], "goal": null}}
+{"today": "2026-11-11", "id": "t05", "stage": "task", "text": "rendre le TP d'algo POO avant lundi", "expected": {"due_date": "2026-11-15", "priority": "Medium", "tags": ["Studies"]}}
+{"today": "2026-11-11", "id": "t06", "stage": "task", "text": "appeler maman demain", "expected": {"due_date": "2026-11-12", "priority": "High", "tags": ["Familly"]}}
+{"today": "2026-11-11", "id": "t07", "stage": "task", "text": "ranger ma chambre samedi", "expected": {"due_date": "2026-11-14", "priority": "Medium", "tags": ["Chores"]}}
+{"today": "2026-11-11", "id": "t08", "stage": "task", "text": "URGENT renvoyer le dossier préfecture", "expected": {"due_date": null, "priority": "High", "tags": ["Personel"]}}
+{"today": "2026-11-11", "id": "t09", "stage": "task", "text": "courir 5km jeudi", "expected": {"due_date": "2026-11-12", "priority": "High", "tags": ["Sport"]}}
+{"today": "2026-11-11", "id": "t10", "stage": "task", "text": "lire 20 pages de Deep Work ce soir", "expected": {"due_date": "2026-11-11", "priority": "High", "tags": ["Self-development"]}}
+{"today": "2026-11-11", "id": "t11", "stage": "task", "text": "prendre rdv chez le dentiste fin du mois", "expected": {"due_date": "2026-11-30", "priority": "Low", "tags": ["Personel"]}}
+{"today": "2026-11-11", "id": "t12", "stage": "task", "text": "préparer l'oral d'anglais pour le 20", "expected": {"due_date": "2026-11-20", "priority": "Low", "tags": ["Studies"]}}
+{"today": "2026-11-11", "id": "t13", "stage": "task", "text": "postuler au stage chez Hugging Face d'ici dimanche", "expected": {"due_date": "2026-11-14", "priority": "Medium", "tags": ["Work"], "goal": "Land an AI internship starting April 2027"}}
+{"today": "2026-11-11", "id": "n01", "stage": "note", "text": "cours SED: un système à événements discrets change d'état à des instants discrets, ex file d'attente. les réseaux de Petri modélisent la concurrence.", "expected": {"category": "University", "has_tasks": false}}
+{"today": "2026-11-11", "id": "n02", "stage": "note", "text": "notes réunion asso: on organise le tournoi le 5 décembre, budget 200€, Sarah gère les inscriptions, je dois réserver la salle", "expected": {"category": "Personal", "has_tasks": true}}
+{"today": "2026-11-11", "id": "n03", "stage": "note", "text": "recette pancakes: 250g farine 2 oeufs 50cl lait 1 sachet levure", "expected": {"category": "Personal", "has_tasks": false}}
+{"today": "2026-11-11", "id": "n04", "stage": "note", "text": "résumé chapitre 3 de Deep Work: le travail profond = concentration sans distraction. règle: planifier chaque minute de la journée, accepter l'ennui", "expected": {"category": "Reading", "has_tasks": false}}
+{"today": "2026-11-11", "id": "n05", "stage": "note", "text": "séance salle: squat 4x8 60kg, développé couché 3x10 40kg, tractions 3x6", "expected": {"category": "Workout", "has_tasks": false}}
+{"today": "2026-11-11", "id": "n06", "stage": "note", "text": "cours probas: la loi de poisson modélise le nb d'événements rares sur un intervalle, esperance = variance = lambda. exo 3 à refaire", "expected": {"category": "University", "has_tasks": true}}
+{"today": "2026-11-11", "id": "b01", "stage": "braindump", "text": "idée: agent LinkedIn vidéo", "expected": {"section": "ideas"}}
+{"today": "2026-11-11", "id": "b02", "stage": "braindump", "text": "pourquoi les LLM hallucinent plus en français ?", "expected": {"section": "questions"}}
+{"today": "2026-11-11", "id": "b03", "stage": "braindump", "text": "Yanis m'a conseillé le livre Deep Work", "expected": {"section": "recommendations"}}
+{"today": "2026-11-11", "id": "b04", "stage": "braindump", "text": "tester obsidian pour les cours", "expected": {"section": "digital"}}
+{"today": "2026-11-11", "id": "b05", "stage": "braindump", "text": "demander au prof de ML des labos qui prennent des stagiaires", "expected": {"section": "career"}}
+{"today": "2026-11-11", "id": "b06", "stage": "braindump", "text": "j'aimerais reprendre la natation", "expected": {"section": "personal"}}
+{"today": "2026-11-11", "id": "b07", "stage": "braindump", "text": "et si je faisais une newsletter sur l'IA en français", "expected": {"section": "ideas"}}
+{"today": "2026-11-11", "id": "b08", "stage": "braindump", "text": "configurer un VPN sur mon téléphone", "expected": {"section": "digital"}}
+{"today": "2026-11-11", "id": "b09", "stage": "braindump", "text": "mettre à jour mon CV avec le projet RAG", "expected": {"section": "career"}}
+{"today": "2026-11-11", "id": "b10", "stage": "braindump", "text": "c'est quoi la différence entre RAG et fine-tuning ?", "expected": {"section": "questions"}}
+{"today": "2026-11-11", "id": "b11", "stage": "braindump", "text": "podcast Lex Fridman avec Karpathy conseillé par Adam", "expected": {"section": "recommendations"}}
+{"today": "2026-11-11", "id": "rcpt1", "stage": "finance", "file": "tests/receipts/receipt1.jpg", "text": "", "expected": null, "todo": "put your receipt photo at this path and fill expected.transactions (one per category, see f13)"}
+{"today": "2026-11-11", "id": "rcpt2", "stage": "finance", "file": "tests/receipts/receipt2.jpg", "text": "", "expected": null, "todo": "put your receipt photo at this path and fill expected.transactions (one per category, see f13)"}
+{"today": "2026-11-11", "id": "rcpt3", "stage": "finance", "file": "tests/receipts/receipt3.jpg", "text": "", "expected": null, "todo": "put your receipt photo at this path and fill expected.transactions (one per category, see f13)"}
+{"today": "2026-11-11", "id": "rcpt4", "stage": "finance", "file": "tests/receipts/receipt4.jpg", "text": "", "expected": null, "todo": "put your receipt photo at this path and fill expected.transactions (one per category, see f13)"}
+{"today": "2026-11-11", "id": "rcpt5", "stage": "finance", "file": "tests/receipts/receipt5.jpg", "text": "", "expected": null, "todo": "put your receipt photo at this path and fill expected.transactions (one per category, see f13)"}

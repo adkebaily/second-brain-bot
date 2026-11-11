@@ -1,0 +1,29 @@
+{
+ "chat_id": "<your Telegram chat id>",
+ "ds": {
+  "expenses": "<notion data source id>",
+  "incomes": "<notion data source id>",
+  "transfers": "<notion data source id>",
+  "categories": "<notion data source id>",
+  "accounts": "<notion data source id>",
+  "todo": "<notion data source id>",
+  "notes": "<notion data source id>",
+  "notecats": "<notion data source id>",
+  "goals": "<notion data source id>"
+ },
+ "brain_dump_page": "<notion page id>",
+ "cred": {
+  "telegram": {
+   "id": "<n8n credential id>",
+   "name": "Telegram bot"
+  },
+  "postgres": {
+   "id": "<n8n credential id>",
+   "name": "SB Postgres"
+  },
+  "testapi": {
+   "id": "<n8n credential id>",
+   "name": "SB Test API key"
+  }
+ }
+}

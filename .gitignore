@@ -1,0 +1,7 @@
+.env
+config.local.json
+tests/eval_results.json
+tests/.created_batches
+tests/receipts/*
+!tests/receipts/.gitkeep
+__pycache__/
