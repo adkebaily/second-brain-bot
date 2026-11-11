@@ -155,7 +155,7 @@ test('mixed batch: instant item saved + finance pending → open; undo/edit butt
   assert.equal(b.status, 'open');
   assert.equal(b.type, 'mixed');
   const labels = X.renderBatch(c, b, L).kb.flat().map(x => x.text);
-  assert.ok(labels.includes('✅ Tout enregistrer') && labels.includes('↩️ Annuler') && labels.some(l => l.startsWith('🎯 2')));
+  assert.ok(labels.includes('✅ Tout enregistrer') && labels.includes('↩️ Défaire') && labels.some(l => l.startsWith('🎯 2')));
   b.payload.items[0].state = 'saved'; X.computeStatus(b); assert.equal(b.status, 'saved');
   b.payload.items.forEach(i => (i.state = 'undone')); X.computeStatus(b); assert.equal(b.status, 'undone');
 });

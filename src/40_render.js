@@ -8,39 +8,49 @@ function fieldTxt(it, field, text) {
   return it.uncertain?.includes(field) ? `<b>${text}?</b>` : text;
 }
 
-function itemLines(it) {
-  const n = it.idx + 1, d = it.data, out = [];
-  const done = it.state === 'saved' && it.notion ? ` → <a href="${esc(it.notion.url)}">Notion</a>` : '';
+const PRIO = { High: '🔥', Medium: '🔸', Low: '▫️' };
+const META = '      ';
+// 10-cell bar for budgets: ▰▰▰▰▰▰▰▱▱▱
+const bar = pct => '▰'.repeat(Math.min(10, Math.round(pct / 10))) + '▱'.repeat(10 - Math.min(10, Math.round(pct / 10)));
+
+function itemLines(it, multi) {
+  const d = it.data, out = [];
+  const n = multi ? `${it.idx + 1}. ` : '';
+  const title = t => (it.state === 'saved' && it.notion ? `<a href="${esc(it.notion.url)}">${t}</a>` : t);
   const strike = s => (live(it) ? s : `<s>${s}</s>`);
   if (it.state === 'needs_type') {
-    out.push(`${n}. ❓ « ${esc(clip(it.span, 80))} » — c'est quoi ?`);
+    out.push(`${n}❓ « ${esc(clip(it.span, 80))} »`, `${META}c'est quoi ? choisis ci-dessous`);
     return out;
   }
   if (it.type === 'finance') {
     const where = d.kind === 'transfer'
       ? `${d.from_account ? esc(d.from_account.name) : '<b>compte source ?</b>'} → ${d.to_account ? esc(d.to_account.name) : '<b>compte cible ?</b>'}`
       : (d.account ? fieldTxt(it, 'account', esc(d.account.name)) : `<b>compte ?</b>${d.card_last4 ? ` (carte ••${d.card_last4})` : ''}`);
-    const cat = d.kind === 'expense' ? (d.category ? fieldTxt(it, 'category', esc(d.category.name)) : d.category_new ? `🆕 <b>${esc(d.category_new)}</b> (nouvelle catégorie)` : '<b>catégorie ?</b>')
+    const cat = d.kind === 'expense' ? (d.category ? fieldTxt(it, 'category', esc(d.category.name)) : d.category_new ? `🆕 <b>${esc(d.category_new)}</b> (nouvelle)` : '<b>catégorie ?</b>')
       : d.kind === 'income' ? (d.income_source ? esc(d.income_source) : '<b>source ?</b>') : 'virement';
-    const ok = it.confidence >= 0.8 && !it.uncertain?.length ? '✓' : '⚠️';
-    out.push(strike(`${n}. ${KIND_EMOJI[d.kind]} ${esc(d.title)} — ${fieldTxt(it, 'amount', eur(d.amount))}${d.currency !== 'EUR' ? ' ' + esc(d.currency) : ''} · ${cat} · ${where} · ${fieldTxt(it, 'date', fmtDay(d.date))} ${ok}`) + done);
-    for (const l of d.lines.slice(0, 8)) out.push(`    • ${esc(clip(l.name, 40))} ${eur(l.price)}`);
-    if (d.lines.length > 8) out.push(`    • … +${d.lines.length - 8} articles`);
+    const sure = it.confidence >= 0.8 && !it.uncertain?.length ? '' : ' ⚠️';
+    out.push(strike(`${n}${KIND_EMOJI[d.kind]} ${title(`<b>${esc(d.title)}</b>`)}   <b>${fieldTxt(it, 'amount', eur(d.amount))}</b>${d.currency !== 'EUR' ? ' ' + esc(d.currency) : ''}${sure}`));
+    out.push(strike(`${META}🏷 ${cat}  ·  💳 ${where}  ·  📅 ${fieldTxt(it, 'date', fmtDay(d.date))}`));
+    for (const l of d.lines.slice(0, 8)) out.push(`${META}   ‣ ${esc(clip(l.name, 40))}  ${eur(l.price)}`);
+    if (d.lines.length > 8) out.push(`${META}   ‣ … +${d.lines.length - 8} articles`);
   } else if (it.type === 'task') {
-    const goal = d.goal ? ` · 🎯 ${esc(clip(d.goal.title, 40))}` : '';
-    out.push(strike(`${n}. ✅ Tâche <b>${esc(d.name)}</b> · ${d.due_date ? fmtDay(d.due_date) : 'sans date'} · ${d.priority} · ${esc(d.tags.join(', ') || '—')}${goal}`) + done);
-    if (d.priority_reason && live(it)) out.push(`    <i>${esc(d.priority_reason)}</i>`);
+    out.push(strike(`${n}☑️ ${title(`<b>${esc(d.name)}</b>`)}`));
+    const meta = [`📅 ${d.due_date ? fmtDay(d.due_date) : 'sans date'}`, `${PRIO[d.priority] || ''} ${d.priority}`];
+    if (d.tags.length) meta.push(`🏷 ${esc(d.tags.join(', '))}`);
+    if (d.goal) meta.push(`🎯 ${esc(clip(d.goal.title, 40))}`);
+    out.push(strike(META + meta.join('  ·  ')));
+    if (d.priority_reason && live(it)) out.push(`${META}<i>${esc(d.priority_reason)}</i>`);
   } else if (it.type === 'note') {
-    out.push(strike(`${n}. 📝 Note <b>${esc(d.name)}</b> · ${esc(d.category?.name || '?')}`) + done);
-    if (d.suggested_tasks.length && !d.tasks_created && live(it)) for (const t of d.suggested_tasks) out.push(`    ☐ ${esc(t)}`);
+    out.push(strike(`${n}📝 ${title(`<b>${esc(d.name)}</b>`)}`), strike(`${META}📂 ${esc(d.category?.name || '?')}`));
+    if (d.suggested_tasks.length && !d.tasks_created && live(it)) for (const t of d.suggested_tasks) out.push(`${META}☐ ${esc(t)}`);
   } else if (it.type === 'braindump') {
-    out.push(strike(`${n}. 💭 ${SB.SECTIONS[d.section]} : « ${esc(d.line)} »`) + done);
-    if (d.expanded) out.push(`    🔍 ${esc(d.expanded)}`);
+    out.push(strike(`${n}💭 ${title(`<i>« ${esc(d.line)} »</i>`)}`), strike(`${META}${SB.SECTIONS[d.section]}`));
+    if (d.expanded) out.push(`${META}🔍 ${esc(d.expanded)}`);
   }
-  if (it.state === 'failed') out.push('    ⏳ Notion indisponible, nouvel essai automatique');
-  if (it.state === 'undone') out.push('    ↩️ annulé (corbeille Notion)');
-  for (const e of it.errors || []) if (live(it)) out.push(`    ❌ ${esc(e)}`);
-  for (const w of it.warnings || []) if (live(it)) out.push(`    ⚠️ ${esc(w)}`);
+  if (it.state === 'failed') out.push(`${META}⏳ Notion indisponible, nouvel essai automatique`);
+  if (it.state === 'undone') out.push(`${META}↩️ annulé (corbeille Notion)`);
+  for (const e of it.errors || []) if (live(it)) out.push(`${META}❌ ${esc(e)}`);
+  for (const w of it.warnings || []) if (live(it)) out.push(`${META}⚠️ ${esc(w)}`);
   return out;
 }
 
@@ -48,15 +58,15 @@ function renderBatch(ctx, b, L) {
   const p = b.payload, items = p.items, pid = b.id;
   const fin = pendingFinance(b);
   const lines = [];
-  if (b.status === 'open' && fin.length) lines.push('🧾 <b>À confirmer</b> — rien n\'est enregistré avant ✅');
-  else if (b.status === 'cancelled') lines.push('❌ <b>Annulé</b>');
-  else if (b.status === 'expired') lines.push('⌛ <b>Expiré</b> (annulé après 48 h)');
-  else if (b.status === 'undone') lines.push('↩️ <b>Annulé</b> — pages mises à la corbeille');
-  else if (b.status === 'retrying') lines.push('⏳ <b>Enregistrement partiel</b> — Notion ne répond pas, je réessaie');
-  else lines.push('✅ <b>Enregistré</b>');
-  if (p.source?.transcript) lines.push(`🎙 <i>${esc(clip(p.source.transcript, 300))}</i>`);
-  for (const it of items) lines.push(...itemLines(it));
-  if (p.budget_lines?.length) lines.push('', '📊 <b>Budgets</b>', ...p.budget_lines);
+  if (b.status === 'open' && fin.length) lines.push('🧾 <b>À CONFIRMER</b>', '<i>Rien n\'est enregistré avant ✅</i>');
+  else if (b.status === 'cancelled') lines.push('❌ <b>ANNULÉ</b>');
+  else if (b.status === 'expired') lines.push('⌛ <b>EXPIRÉ</b>', '<i>Annulé après 48 h sans réponse</i>');
+  else if (b.status === 'undone') lines.push('↩️ <b>ANNULÉ</b>', '<i>Pages mises à la corbeille Notion</i>');
+  else if (b.status === 'retrying') lines.push('⏳ <b>ENREGISTREMENT PARTIEL</b>', '<i>Notion ne répond pas, je réessaie</i>');
+  else lines.push('✅ <b>ENREGISTRÉ</b>');
+  if (p.source?.transcript) lines.push('', `🎙 <i>${esc(clip(p.source.transcript, 300))}</i>`);
+  for (const it of items) lines.push('', ...itemLines(it, items.length > 1));
+  if (p.budget_lines?.length) lines.push('', '━━━━━━━━━━━━', '📊 <b>Budgets du mois</b>', ...p.budget_lines);
   if (p.note) lines.push('', p.note);
 
   const kb = [];
@@ -90,7 +100,7 @@ function renderBatch(ctx, b, L) {
   if (saved.length || items.some(i => i.state === 'failed')) {
     const row = [];
     if (!(b.status === 'open' && fin.length)) row.push(btn(ctx, '✏️ Modifier', 'edit', {}, pid, true));
-    if (saved.length) row.push(btn(ctx, '↩️ Annuler', 'undo', {}, pid));
+    if (saved.length) row.push(btn(ctx, '↩️ Défaire', 'undo', {}, pid));
     kb.push(row);
   }
   return { text: lines.join('\n'), kb };

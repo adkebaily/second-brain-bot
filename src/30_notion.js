@@ -152,6 +152,10 @@ async function bdInsert(ctx, key, line) {
 }
 
 // ---------- budgets ----------
+function budgetLine(name, spent, budget) {
+  const pct = Math.round((spent / budget) * 100);
+  return `<b>${esc(name)}</b>${pct >= 100 ? ' 🚨' : pct >= 80 ? ' ⚠️' : ''}\n<code>${bar(pct)}</code> ${pct} %  ·  ${eur(spent).replace(' €', '')} / ${eur(budget)}`;
+}
 async function budgetLines(ctx, categoryIds) {
   const lines = [];
   for (const id of [...new Set(categoryIds)]) {
@@ -160,9 +164,8 @@ async function budgetLines(ctx, categoryIds) {
     const budget = p.properties['Monthly Budget']?.number || 0;
     const r = p.properties['Expense This Month']?.rollup;
     const spent = r?.number ?? 0;
-    if (!budget) { lines.push(`${esc(name)} : ${eur(spent)} ce mois (pas de budget)`); continue; }
-    const pct = Math.round((spent / budget) * 100);
-    lines.push(`${pct >= 100 ? '🚨 ' : pct >= 80 ? '⚠️ ' : ''}${esc(name)} : ${eur(spent).replace(' €', '')}/${eur(budget)} (${pct}%)`);
+    if (!budget) { lines.push(`<b>${esc(name)}</b>  ${eur(spent)} ce mois <i>(pas de budget)</i>`); continue; }
+    lines.push(budgetLine(name, spent, budget));
   }
   return lines;
 }

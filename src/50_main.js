@@ -402,7 +402,7 @@ async function openTasks(ctx, until) {
 }
 function taskLine(ctx, t) {
   const late = t.due ? daysBetween(t.due, today(ctx)) : 0;
-  return `• <a href="${esc(t.url)}">${esc(t.name)}</a>${late > 0 ? ` — <i>en retard de ${late} j</i>` : ''}${t.priority === 'High' ? ' 🔥' : ''}`;
+  return `${PRIO[t.priority] || '▫️'} <a href="${esc(t.url)}">${esc(t.name)}</a>${late > 0 ? `  <i>⏰ en retard de ${late} j</i>` : ''}`;
 }
 function taskKb(ctx, tasks, evening) {
   const kb = [];
@@ -418,8 +418,8 @@ function taskKb(ctx, tasks, evening) {
 }
 async function tasksMessage(ctx) {
   const tasks = await openTasks(ctx, today(ctx));
-  if (!tasks.length) return tgSend(ctx, '🎉 Aucune tâche pour aujourd\'hui ni en retard.');
-  return tgSend(ctx, [`📋 <b>Aujourd'hui + en retard</b> (${tasks.length})`, ...tasks.map(t => taskLine(ctx, t))].join('\n'), taskKb(ctx, tasks, false));
+  if (!tasks.length) return tgSend(ctx, '🎉 <b>Rien pour aujourd\'hui</b>\n<i>Aucune tâche du jour ni en retard.</i>');
+  return tgSend(ctx, [`📋 <b>AUJOURD'HUI</b>  ·  ${tasks.length} tâche${tasks.length > 1 ? 's' : ''}`, `<i>${fmtDay(today(ctx))} · du jour + en retard</i>`, '', ...tasks.map(t => taskLine(ctx, t)), '', '<i>Touche une tâche ci-dessous quand elle est faite.</i>'].join('\n'), taskKb(ctx, tasks, false));
 }
 
 async function monthText(ctx) {
@@ -430,12 +430,15 @@ async function monthText(ctx) {
     nQuery(ctx, SB.DS.incomes, { filter: { property: 'Date', date: { on_or_after: start } } }, 500)]);
   const sum = rows => rows.reduce((s, p) => s + (p.properties.Amount?.number || 0), 0);
   const out = sum(exp), inn = sum(inc);
-  const lines = [`📅 <b>${t.slice(0, 7)}</b> — dépenses ${eur(out)} · revenus ${eur(inn)} · net ${eur(inn - out)}`, ''];
+  const month = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: SB.TZ }).format(new Date(t + 'T12:00:00Z'));
+  const lines = [`📅 <b>${esc(month.toUpperCase())}</b>`, '',
+    `🔴 Dépenses   <b>${eur(out)}</b>`, `🟢 Revenus    <b>${eur(inn)}</b>`, `${inn - out >= 0 ? '📈' : '📉'} Net           <b>${eur(inn - out)}</b>`, '', '━━━━━━━━━━━━', '📊 <b>Budgets</b>'];
+  const free = [];
   for (const c of L.categories.sort((x, y) => y.spent - x.spent)) {
-    if (!c.budget) { if (c.spent) lines.push(`${esc(c.name)} : ${eur(c.spent)} (pas de budget)`); continue; }
-    const pct = Math.round((c.spent / c.budget) * 100);
-    lines.push(`${pct >= 100 ? '🚨' : pct >= 80 ? '⚠️' : '•'} ${esc(c.name)} : ${eur(c.spent).replace(' €', '')}/${eur(c.budget)} (${pct}%)`);
+    if (!c.budget) { if (c.spent) free.push(`• ${esc(c.name)}  ${eur(c.spent)}`); continue; }
+    lines.push('', budgetLine(c.name, c.spent, c.budget));
   }
+  if (free.length) lines.push('', '<i>Sans budget</i>', ...free);
   return lines.join('\n');
 }
 
