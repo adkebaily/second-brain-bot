@@ -21,22 +21,22 @@ async function morningBrief(ctx) {
   const t = today(ctx), y = addDays(t, -1);
   const L = await lists(ctx, true);
   const [tasks, bd] = await Promise.all([openTasks(ctx, t), allBrainDump(ctx)]);
-  const lines = [`☀️ <b>Bonjour !</b> ${fmtDay(t)}`, ''];
-  lines.push(tasks.length ? `📋 <b>Tâches du jour + en retard</b> (${tasks.length})` : '📋 Aucune tâche aujourd\'hui ni en retard 🎉', ...tasks.slice(0, 25).map(x => taskLine(ctx, x)));
+  const lines = ['☀️ <b>BONJOUR !</b>', `<i>${fmtDay(t)}</i>`, ''];
+  lines.push(tasks.length ? `📋 <b>Aujourd'hui</b>  ·  ${tasks.length} tâche${tasks.length > 1 ? 's' : ''}` : '🎉 <b>Aucune tâche aujourd\'hui ni en retard</b>', ...tasks.slice(0, 25).map(x => taskLine(ctx, x)));
   const hot = L.categories.filter(c => c.budget > 0 && c.spent / c.budget >= 0.8);
-  if (hot.length) lines.push('', '📊 <b>Budgets ≥ 80 %</b>', ...hot.map(c => `${c.spent >= c.budget ? '🚨' : '⚠️'} ${esc(c.name)} : ${eur(c.spent).replace(' €', '')}/${eur(c.budget)} (${Math.round((c.spent / c.budget) * 100)}%)`));
+  if (hot.length) lines.push('', '━━━━━━━━━━━━', '📊 <b>Budgets à surveiller</b>', ...hot.map(c => budgetLine(c.name, c.spent, c.budget)));
   const yd = bd.filter(x => parisDay(x.created) === y);
-  if (yd.length) lines.push('', `💭 <b>Brain dump d'hier</b> (${yd.length})`, ...yd.map(x => `• ${SB.SECTIONS[x.section].split(' ')[0]} <a href="${esc(x.url)}">${esc(clip(x.text, 80))}</a>`));
+  if (yd.length) lines.push('', '━━━━━━━━━━━━', `💭 <b>Idées d'hier</b>  ·  ${yd.length}`, ...yd.map(x => `${SB.SECTIONS[x.section].split(' ')[0]} <a href="${esc(x.url)}">${esc(clip(x.text, 80))}</a>`));
   const waiting = (ctx.db.open || []).filter(r => r.status === 'open' && r.payload.items.some(i => i.type === 'finance' && i.state === 'pending'));
-  if (waiting.length) lines.push('', `🧾 <b>${waiting.length} lot${waiting.length > 1 ? 's' : ''} finance à confirmer</b>`,
-    ...waiting.map(r => `• ${r.payload.items.filter(i => i.state === 'pending').map(i => `${esc(i.data.title)} ${eur(i.data.amount)}`).join(', ')}`));
+  if (waiting.length) lines.push('', '━━━━━━━━━━━━', `🧾 <b>À confirmer</b>  ·  ${waiting.length} message${waiting.length > 1 ? 's' : ''}`,
+    ...waiting.map(r => `• ${r.payload.items.filter(i => i.state === 'pending').map(i => `${esc(i.data.title)} <b>${eur(i.data.amount)}</b>`).join(', ')}`));
   return tgSend(ctx, lines.join('\n'), taskKb(ctx, tasks, false));
 }
 
 async function eveningBrief(ctx) {
   const tasks = await openTasks(ctx, today(ctx));
-  if (!tasks.length) return tgSend(ctx, '🌙 Rien d\'ouvert pour aujourd\'hui. Bonne soirée !');
-  return tgSend(ctx, ['🌙 <b>Qu\'as-tu terminé aujourd\'hui ?</b>', '✅ si c\'est fait. Sinon : reporter à demain, autre date, ou garder. Rien ne change sans ton choix.', '',
+  if (!tasks.length) return tgSend(ctx, '🌙 <b>BONNE SOIRÉE !</b>\n<i>Plus rien d\'ouvert pour aujourd\'hui.</i>');
+  return tgSend(ctx, ['🌙 <b>BILAN DU SOIR</b>', '<i>Qu\'as-tu terminé aujourd\'hui ?</i>', '', '✅ fait  ·  ➡️ demain  ·  📅 autre date  ·  = garder', '<i>Rien ne change sans ton choix.</i>', '',
     ...tasks.slice(0, 12).map(x => taskLine(ctx, x)), ...(tasks.length > 12 ? [`… +${tasks.length - 12} (voir /today)`] : [])].join('\n'), taskKb(ctx, tasks, true));
 }
 
@@ -59,15 +59,16 @@ async function weeklyBrief(ctx) {
   for (const p of exp) { const id = p.properties.Category?.relation?.[0]?.id || 'none'; byCat[id] = (byCat[id] || 0) + (p.properties.Amount?.number || 0); }
   const top = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([id, v]) => {
     const c = L.categories.find(x => x.id === id);
-    const month = c?.budget ? ` · mois ${eur(c.spent).replace(' €', '')}/${eur(c.budget)} (${Math.round((c.spent / c.budget) * 100)}%)` : '';
-    return `• ${esc(c?.name || 'Sans catégorie')} : ${eur(v)}${month}`;
+    const month = c?.budget ? `\n<code>${bar((c.spent / c.budget) * 100)}</code> mois ${Math.round((c.spent / c.budget) * 100)} %` : '';
+    return `• ${esc(c?.name || 'Sans catégorie')}  <b>${eur(v)}</b>${month}`;
   });
   const bdWeek = bd.filter(x => parisDay(x.created) >= wk);
-  return tgSend(ctx, [`🗓 <b>Bilan de la semaine</b> (${fmtDay(wk)} → ${fmtDay(t)})`, '',
-    `💶 Entrées ${eur(inn)} · Sorties ${eur(out)} · Net ${eur(inn - out)}`, ...(top.length ? ['<b>Top catégories</b>', ...top] : []), '',
-    `✅ Tâches : ${tDone.length} terminées · ${tCreated.length} créées`,
-    `💭 Brain dump : ${bdWeek.length} idée${bdWeek.length > 1 ? 's' : ''}`,
-    `📝 Notes créées : ${notes.length}`].join('\n'));
+  return tgSend(ctx, ['🗓 <b>BILAN DE LA SEMAINE</b>', `<i>${fmtDay(wk)} → ${fmtDay(t)}</i>`, '',
+    '💶 <b>Argent</b>', `🟢 Entrées    <b>${eur(inn)}</b>`, `🔴 Sorties    <b>${eur(out)}</b>`, `${inn - out >= 0 ? '📈' : '📉'} Net          <b>${eur(inn - out)}</b>`,
+    ...(top.length ? ['', '🏷 <b>Top catégories</b>', ...top] : []), '', '━━━━━━━━━━━━',
+    `☑️ Tâches     <b>${tDone.length}</b> terminées · ${tCreated.length} créées`,
+    `💭 Idées       <b>${bdWeek.length}</b>`,
+    `📝 Notes      <b>${notes.length}</b>`].join('\n'));
 }
 
 async function maintain(ctx, row) {
@@ -84,7 +85,7 @@ async function maintain(ctx, row) {
     }
     if (ageH >= 12 && !b.reminded_at) {
       ctx.stage = 'remind batch';
-      await tgSend(ctx, `⏰ Ce lot attend toujours ✅ (annulé automatiquement dans ${Math.round(48 - ageH)} h).`, null, { reply_parameters: { message_id: b.telegram_message_id, allow_sending_without_reply: true } });
+      await tgSend(ctx, `⏰ <b>Toujours en attente de ✅</b>\n<i>Annulé automatiquement dans ${Math.round(48 - ageH)} h.</i>`, null, { reply_parameters: { message_id: b.telegram_message_id, allow_sending_without_reply: true } });
       b.reminded_at = new Date().toISOString();
       track(ctx, b);
     }
