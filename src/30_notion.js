@@ -109,6 +109,7 @@ function learningProps(L, x, url) {
 }
 // 📚 button: the note / idea becomes a Learning Library row, then the original is removed. ↩️ trashes the new row.
 async function moveToLearning(ctx, L, b, it) {
+  if (!L.learn_types) L = await lists(ctx, true); // cache written by an older version has no Learning options
   const text = [it.span, it.data.detail].filter(Boolean).join('\n');
   const { out } = await llm(ctx, { kind: 'learning', system: fill(HELPER.learning.system, { LEARN_TYPES: L.learn_types.join(', '), LEARN_CATEGORIES: L.learn_categories.join(', ') }),
     schema: HELPER.learning.schema, parts: [{ text }], meta: { batch_id: b.id, item_idx: it.idx } });

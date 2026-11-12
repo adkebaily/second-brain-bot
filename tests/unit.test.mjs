@@ -305,3 +305,16 @@ test('learning: flagged idea gets a 📚 button until moved; moved items cannot 
   assert.ok(!r.kb.flat().some(x => /📚|🔍/.test(x.text)));
   assert.match(r.text, /📚 → <a href="https:\/\/notion.so\/r">Learning Library<\/a> : RAG/);
 });
+
+test('learning: 📚 tap with a list cache from before the Learning Library refreshes instead of crashing', async () => {
+  const old = { categories: [], accounts: [], goals: [], notecats: [], income_sources: [] }; // no learn_types
+  const it = { idx: 0, type: 'braindump', state: 'saved', span: 'vidéo crypto https://youtube.com/@x', notion: { id: 'blk', url: 'u', kind: 'block' }, data: { section: 'recommendations', line: 'Vidéo crypto', detail: '', learning: true }, warnings: [] };
+  const pending = { id: 'B1', chat_id: 111111111, type: 'instant', status: 'saved', telegram_message_id: 9, payload: { source: { input_type: 'text' }, items: [it] } };
+  const { c, calls } = fakeCtx([{ name: 'Vidéo crypto', type: 'Video', categories: [], takeaway: '' }],
+    { cache: { lists: { value: old, fetched_at: new Date().toISOString() } }, cb: { action: 'tolearn', data: { idx: 0 } }, pending });
+  await X.mainEngine(c, { update: { callback_query: { id: 'q', from: { id: 111111111 }, data: 'cb:t', message: { message_id: 9, chat: { id: 111111111 } } } } });
+  assert.ok(calls.some(o => o.url.includes('/data_sources/') && o.method === 'GET')); // lists refetched
+  const page = calls.find(o => o.url.endsWith('/pages') && o.method === 'POST');
+  assert.equal(page.body.properties['Files & media'].files[0].external.url, 'https://youtube.com/@x');
+  assert.ok(pending.payload.items[0].data.moved || c.batches?.[0]?.payload.items[0].data.moved);
+});
