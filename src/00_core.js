@@ -16,6 +16,7 @@ const SB = {
     notes: '__SB_DS_notes__',
     notecats: '__SB_DS_notecats__',
     goals: '__SB_DS_goals__',
+    learning: '__SB_DS_learning__',
   },
   BRAIN_DUMP_PAGE: '__SB_BRAIN_DUMP_PAGE__',
   SECTIONS: {

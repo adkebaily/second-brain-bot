@@ -234,6 +234,8 @@ async function onCallback(ctx, cq) {
     const fresh = await extractSpans(ctx, L, b, it.data.suggested_tasks.map(t => ({ type: 'task', text_span: t, confidence: 1 })), { ...b.payload.source, file: null }, null);
     it.data.tasks_created = true;
     await finalizeNew(ctx, L, b, fresh);
+  } else if (a === 'tolearn' && it && it.state === 'saved' && !it.data.moved) {
+    await moveToLearning(ctx, L, b, it);
   } else if (a === 'expand' && it && !it.data.expanded) {
     await expandIdea(ctx, L, b, it);
   }
@@ -302,7 +304,7 @@ async function onEditText(ctx, m, st) {
   ctx.batch = b;
   ctx.stage = 'edit';
   const L = await lists(ctx);
-  const editable = b.payload.items.filter(i => ['pending', 'saved'].includes(i.state));
+  const editable = b.payload.items.filter(i => ['pending', 'saved'].includes(i.state) && !i.data.moved);
   const { out } = await llm(ctx, { kind: 'edit', system: fill(HELPER.edit.system, promptVars(ctx, L)), schema: HELPER.edit.schema,
     parts: [{ text: `Items:\n${JSON.stringify(editable.map(editView))}\n\nCorrection: ${m.text}` }], meta: { batch_id: b.id, input_type: 'text' } });
   const changed = new Map();

@@ -8,7 +8,7 @@ import path from 'node:path';
 const dir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src');
 const lib = fs.readdirSync(dir).filter(f => f.endsWith('.js')).sort().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 const S = vm.createContext({ Buffer, setTimeout, Intl, console, Date, Math, JSON });
-vm.runInContext(lib + '\nthis.X = { SB, paris, addDays, fmtDay, calendar, priorityFor, postFinance, validateFinance, needsAccount, postTask, postBraindump, applyChange, renderBatch, finish, makeCtx, prepare, dueClaims, parisMidnight, sim, route, computeStatus, weekStart, replaceRows, chatTurn, mainEngine };', S);
+vm.runInContext(lib + '\nthis.X = { SB, paris, addDays, fmtDay, calendar, priorityFor, postFinance, validateFinance, needsAccount, postTask, postBraindump, applyChange, renderBatch, finish, makeCtx, prepare, dueClaims, parisMidnight, sim, route, computeStatus, weekStart, replaceRows, chatTurn, mainEngine, learningProps };', S);
 const X = S.X;
 X.SB.CHAT_ID = '111111111'; // placeholder in src; real id comes from config.local.json at deploy
 // values from the vm realm have other prototypes; compare as plain JSON
@@ -275,4 +275,33 @@ test('engine: chat message gets no pending row; unclear message asks ❓ and ope
   assert.equal(st.row.awaiting, 'chat');
   deq(st.row.ref.clarify, { idx: 0 });
   assert.match(k.calls.find(o => o.url.endsWith('/editMessageText')).body.text, /❓ Tâche ou idée \?/);
+});
+
+// ---------- Learning Library ----------
+const LL = { learn_types: ['Article', 'Book', 'Course', 'Video', 'Website'], learn_categories: ['AI Agents', 'AI Engineering', 'CS'] };
+
+test('learning: row uses only live options, link goes to Files & media', () => {
+  const p = X.learningProps(LL, { name: 'RAG expliqué', type: 'video', categories: ['ai engineering', 'Cooking', 'AI Engineering'], takeaway: '' }, 'https://youtu.be/abc');
+  deq(p.Type, { select: { name: 'Video' } });
+  deq(p.Category, { multi_select: [{ name: 'AI Engineering' }] });
+  deq(p.Status, { status: { name: 'Not started' } });
+  assert.equal(p['Files & media'].files[0].external.url, 'https://youtu.be/abc');
+  assert.ok(!('Key Takeaways' in p));
+  const q = X.learningProps(LL, { name: 'x', type: 'Film', categories: [], takeaway: 'bases du RAG' }, null);
+  assert.ok(!('Type' in q) && !('Category' in q) && !('Files & media' in q));
+  assert.equal(q['Key Takeaways'].rich_text[0].text.content, 'bases du RAG');
+});
+
+test('learning: flagged idea gets a 📚 button until moved; moved items cannot be ✏️-edited', () => {
+  const c = ctxAt(T0);
+  const it = X.postBraindump(c, { section: 'recommendations', line: 'Vidéo sur le RAG', detail: '', learning: true }, { text: '' });
+  assert.equal(it.data.learning, true);
+  assert.equal(X.postBraindump(c, { section: 'ideas', line: 'x', detail: '' }, { text: '' }).data.learning, false);
+  const b = batch([{ ...it, state: 'saved', notion: { id: 'blk', url: 'u', kind: 'block' } }]);
+  X.computeStatus(b);
+  assert.ok(X.renderBatch(c, b, L).kb.flat().some(x => x.text === '📚 1 → Learning Library'));
+  b.payload.items[0].data.moved = { name: 'RAG', url: 'https://notion.so/r' };
+  const r = X.renderBatch(c, b, L);
+  assert.ok(!r.kb.flat().some(x => /📚|🔍/.test(x.text)));
+  assert.match(r.text, /📚 → <a href="https:\/\/notion.so\/r">Learning Library<\/a> : RAG/);
 });

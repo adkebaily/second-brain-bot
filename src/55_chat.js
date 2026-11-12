@@ -17,6 +17,7 @@ function chatBaseData(L) {
   return [`Budgets ce mois : ${cats.join(' · ') || 'aucune dépense'}`, `Objectifs actifs : ${L.goals.map(g => g.title).join(' · ') || 'aucun'}`].join('\n');
 }
 
+const PAGE_KIND = { [SB.DS.notes]: 'note', [SB.DS.todo]: 'tâche', [SB.DS.learning]: 'learning', [SB.DS.goals]: 'objectif' };
 async function pageText(ctx, id) {
   const r = await N(ctx, 'GET', `/blocks/${id}/children?page_size=50`).catch(() => ({ results: [] }));
   return clip(r.results.map(b => plain(b[b.type]?.rich_text)).filter(Boolean).join('\n'), 1200);
@@ -43,12 +44,13 @@ async function chatLookups(ctx, L, lookups) {
       const words = norm(q.query).split(' ').filter(w => w.length >= 3).slice(0, 4);
       const found = await Promise.all(words.map(w => N(ctx, 'POST', '/search', { query: w, filter: { property: 'object', value: 'page' }, page_size: 10 }).catch(() => ({ results: [] }))));
       const pages = [];
-      for (const p of found.flatMap(r => r.results)) if ([SB.DS.notes, SB.DS.todo].includes(p.parent?.data_source_id) && !pages.some(x => x.id === p.id)) pages.push(p);
-      const bodies = await Promise.all(pages.slice(0, 3).map(p => p.parent.data_source_id === SB.DS.notes ? pageText(ctx, p.id) : ''));
+      const finance = [SB.DS.expenses, SB.DS.incomes, SB.DS.transfers];
+      for (const p of found.flatMap(r => r.results)) if (!finance.includes(p.parent?.data_source_id) && !pages.some(x => x.id === p.id)) pages.push(p); // all Notion; money has its own lookups
+      const bodies = await Promise.all(pages.slice(0, 3).map(p => pageText(ctx, p.id)));
       const bd = (await Promise.all(Object.keys(SB.SECTIONS).map(k => bdItems(ctx, k).catch(() => [])))).flat()
         .filter(x => words.some(w => norm(x.text).includes(w))).slice(0, 8);
       const hits = [
-        ...pages.slice(0, 6).map((p, i) => `- [${p.parent.data_source_id === SB.DS.notes ? 'note' : 'tâche'}] ${pTitle(p)}${bodies[i] ? '\n  ' + bodies[i].replace(/\n/g, '\n  ') : ''}`),
+        ...pages.slice(0, 6).map((p, i) => `- [${PAGE_KIND[p.parent?.data_source_id] || 'page'}] ${pTitle(p)}${bodies[i] ? '\n  ' + bodies[i].replace(/\n/g, '\n  ') : ''}`),
         ...bd.map(x => `- [brain dump] ${x.text}`)];
       out.push(`Recherche « ${q.query} » :\n${hits.join('\n') || '(rien trouvé)'}`);
     }

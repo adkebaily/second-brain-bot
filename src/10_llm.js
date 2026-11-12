@@ -37,6 +37,10 @@ Only output fields the user wants changed.`,
       problem: { type: 'STRING' }, why: { type: 'STRING' }, angles: { type: 'ARRAY', items: { type: 'STRING' } }, risks: { type: 'ARRAY', items: { type: 'STRING' } },
       next_step: { type: 'STRING' }, keywords: { type: 'ARRAY', items: { type: 'STRING' } }, summary: { type: 'STRING' } } },
   },
+  learning: {
+    system: 'You fill one row of a student\'s Learning Library (resources to learn from) from what they sent.\n- name: the resource\'s title exactly as given, else a short descriptive title from the message words (max 10 words, input language). Never guess a more specific title than the message gives. No URL in the name.\n- type: exactly one of {{LEARN_TYPES}} (YouTube/TikTok link or "vidéo" = Video, a course or MOOC = Course, a book = Book, a docs page or tool site = Website).\n- categories: 1 or 2 of {{LEARN_CATEGORIES}} that fit the topic best.\n- takeaway: why it is worth it or what to learn from it, max 15 words, only if the message says so, else "".',
+    schema: { type: 'OBJECT', required: ['name', 'type', 'categories', 'takeaway'], properties: { name: { type: 'STRING' }, type: { type: 'STRING' }, categories: { type: 'ARRAY', items: { type: 'STRING' } }, takeaway: { type: 'STRING' } } },
+  },
   rerank: {
     system: 'Given an idea and numbered candidate items from the same person\'s notes, tasks and brain dump, return the numbers of at most 3 candidates that are genuinely related (same topic or directly useful). Return an empty list if none is clearly related.',
     schema: { type: 'OBJECT', required: ['related'], properties: { related: { type: 'ARRAY', items: { type: 'INTEGER' } } } },
@@ -87,10 +91,11 @@ const media = (mime, b64) => ({ inlineData: { mimeType: mime, data: b64 } });
 async function lists(ctx, fresh = false) {
   const c = ctx.db.cache?.lists;
   if (!fresh && c && Date.now() - Date.parse(c.fetched_at) < SB.LIST_TTL_MS) return c.value;
-  const [cats, accts, goals, ncats, inc] = await Promise.all([
+  const [cats, accts, goals, ncats, inc, learn] = await Promise.all([
     nQuery(ctx, SB.DS.categories), nQuery(ctx, SB.DS.accounts),
     nQuery(ctx, SB.DS.goals, { filter: { property: 'Status', status: { does_not_equal: 'Completed' } } }),
     nQuery(ctx, SB.DS.notecats), N(ctx, 'GET', `/data_sources/${SB.DS.incomes}`),
+    N(ctx, 'GET', `/data_sources/${SB.DS.learning}`).catch(() => ({ properties: {} })), // missing Learning Library must not break capture
   ]);
   const num = v => (v?.type === 'number' ? v.number : v?.type === 'rollup' ? (v.rollup?.number ?? 0) : v?.type === 'formula' ? (v.formula?.number ?? 0) : 0) || 0;
   const value = {
@@ -99,6 +104,8 @@ async function lists(ctx, fresh = false) {
     goals: goals.map(p => ({ id: p.id, title: pTitle(p), desc: clip(plain(p.properties.Description?.rich_text), 160), url: p.url })),
     notecats: ncats.map(p => ({ id: p.id, name: pTitle(p) })),
     income_sources: (inc.properties?.Source?.select?.options || []).map(o => o.name),
+    learn_types: (learn.properties?.Type?.select?.options || []).map(o => o.name),
+    learn_categories: (learn.properties?.Category?.multi_select?.options || []).map(o => o.name),
   };
   ctx.ops.push({ op: 'cache_set', key: 'lists', value });
   ctx.db.cache = { ...(ctx.db.cache || {}), lists: { value, fetched_at: new Date().toISOString() } };

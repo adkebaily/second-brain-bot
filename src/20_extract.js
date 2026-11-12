@@ -142,7 +142,7 @@ function postNote(ctx, L, out, src) {
     data: {
       name: clip(out.name || 'Note', 100), category: c ? { id: c.id, name: c.name } : null,
       body: out.cleaned_markdown || src.text, raw: src.file ? (out.raw_text || '') : (src.raw || src.text),
-      suggested_tasks: (out.suggested_tasks || []).slice(0, 5), tasks_created: false,
+      suggested_tasks: (out.suggested_tasks || []).slice(0, 5), tasks_created: false, learning: !!out.learning,
     },
   };
 }
@@ -156,7 +156,7 @@ function postBraindump(ctx, out, src) {
   const words = String(out.line || src.text).trim().split(/\s+/);
   return {
     type: 'braindump', confidence: 0.9, warnings: [], uncertain: [],
-    data: { section: SB.SECTIONS[out.section] ? out.section : 'personal', line: words.slice(0, 15).join(' '), detail: out.detail || '', expanded: null },
+    data: { section: SB.SECTIONS[out.section] ? out.section : 'personal', line: words.slice(0, 15).join(' '), detail: out.detail || '', expanded: null, learning: !!out.learning },
   };
 }
 

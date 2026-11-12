@@ -28,7 +28,7 @@ proposals (0–3, ONLY with action end, otherwise []): things worth saving that 
 lookups (only when DATA lacks it, max 3):
 - tasks: open tasks due on or before `to` (overdue included). Default `to` = today + 7.
 - expenses / incomes: rows from `from` to `to` (YYYY-MM-DD), optional `category` (exact name from: {{CATEGORIES}}).
-- search: their notes, tasks and brain-dump items matching `query` (2–4 keywords, their words).
+- search: any page of their Notion (notes, tasks, Learning Library, courses, projects…) and brain-dump items matching `query` (2–4 keywords, their words).
 This month's budgets and active goals are always in DATA; never look them up.
 
 Bot commands you may point to: /today /month /undo /cards /help. Prefixes: $ finance, ! task, # note, ? idea, @ talk.

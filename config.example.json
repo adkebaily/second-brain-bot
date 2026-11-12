@@ -9,7 +9,8 @@
   "todo": "<notion data source id>",
   "notes": "<notion data source id>",
   "notecats": "<notion data source id>",
-  "goals": "<notion data source id>"
+  "goals": "<notion data source id>",
+  "learning": "<notion data source id>"
  },
  "brain_dump_page": "<notion page id>",
  "cred": {

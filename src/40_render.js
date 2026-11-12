@@ -47,6 +47,7 @@ function itemLines(it, multi) {
     out.push(strike(`${n}💭 ${title(`<i>« ${esc(d.line)} »</i>`)}`), strike(`${META}${SB.SECTIONS[d.section]}`));
     if (d.expanded) out.push(`${META}🔍 ${esc(d.expanded)}`);
   }
+  if (d.moved && live(it)) out.push(`${META}📚 → <a href="${esc(d.moved.url)}">Learning Library</a> : ${esc(d.moved.name)}`);
   if (it.state === 'failed') out.push(`${META}⏳ Notion indisponible, nouvel essai automatique`);
   if (it.state === 'undone') out.push(`${META}↩️ annulé (corbeille Notion)`);
   for (const e of it.errors || []) if (live(it)) out.push(`${META}❌ ${esc(e)}`);
@@ -95,7 +96,8 @@ function renderBatch(ctx, b, L) {
   for (const it of saved) {
     if (it.type === 'task' && it.data.goal_suggestion && !it.data.goal) kb.push([btn(ctx, `🎯 ${it.idx + 1} → ${clip(it.data.goal_suggestion.title, 40)}`, 'goal', { idx: it.idx }, pid)]);
     if (it.type === 'note' && it.data.suggested_tasks.length && !it.data.tasks_created) kb.push([btn(ctx, `➕ Créer ${it.data.suggested_tasks.length} tâche${it.data.suggested_tasks.length > 1 ? 's' : ''}`, 'mktasks', { idx: it.idx }, pid)]);
-    if (it.type === 'braindump' && !it.data.expanded) kb.push([btn(ctx, `🔍 Développer ${it.idx + 1}`, 'expand', { idx: it.idx }, pid)]);
+    if (it.data.learning && !it.data.moved) kb.push([btn(ctx, `📚 ${it.idx + 1} → Learning Library`, 'tolearn', { idx: it.idx }, pid)]);
+    if (it.type === 'braindump' && !it.data.expanded && !it.data.moved) kb.push([btn(ctx, `🔍 Développer ${it.idx + 1}`, 'expand', { idx: it.idx }, pid)]);
   }
   if (saved.length || items.some(i => i.state === 'failed')) {
     const row = [];
@@ -129,7 +131,7 @@ const HELP_TEXT = [
   '',
   '<b>Boutons</b>',
   '✅ enregistrer · ✏️ corriger (réponds en texte, ex. « 2: catégorie transport ») · ❌ annuler · 🗑 supprimer une ligne',
-  '↩️ défaire (corbeille Notion) · 🎯 lier à un objectif · ➕ créer les tâches d\'une note · 🔍 développer une idée',
+  '↩️ défaire (corbeille Notion) · 🎯 lier à un objectif · ➕ créer les tâches d\'une note · 🔍 développer une idée · 📚 ranger une ressource dans la Learning Library',
   '➡️ reporter à demain · 📅 autre date · = garder',
   '',
   'Finance : rien n\'est écrit avant ✅. Tâches, notes et idées sont enregistrées tout de suite.',

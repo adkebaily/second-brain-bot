@@ -96,6 +96,29 @@ async function updateItem(ctx, L, batch, it, fields) {
   }
 }
 
+const URL_RE = /https?:\/\/[^\s<>"]+/;
+function learningProps(L, x, url) {
+  const p = { 'Resource Name': titleProp(clip(x.name, 150)), Status: { status: { name: 'Not started' } } };
+  const type = L.learn_types.find(t => norm(t) === norm(x.type));
+  if (type) p.Type = { select: { name: type } };
+  const cats = (x.categories || []).map(c => L.learn_categories.find(o => norm(o) === norm(c))).filter(Boolean);
+  if (cats.length) p.Category = { multi_select: [...new Set(cats)].slice(0, 2).map(name => ({ name })) };
+  if (x.takeaway) p['Key Takeaways'] = { rich_text: rtext(clip(x.takeaway, 300)) };
+  if (url) p['Files & media'] = { files: [{ name: clip(url, 100), type: 'external', external: { url } }] }; // same place as the rows made by hand
+  return p;
+}
+// 📚 button: the note / idea becomes a Learning Library row, then the original is removed. ↩️ trashes the new row.
+async function moveToLearning(ctx, L, b, it) {
+  const text = [it.span, it.data.detail].filter(Boolean).join('\n');
+  const { out } = await llm(ctx, { kind: 'learning', system: fill(HELPER.learning.system, { LEARN_TYPES: L.learn_types.join(', '), LEARN_CATEGORIES: L.learn_categories.join(', ') }),
+    schema: HELPER.learning.schema, parts: [{ text }], meta: { batch_id: b.id, item_idx: it.idx } });
+  const url = (URL_RE.exec(text) || [])[0] || null;
+  const page = await createPage(ctx, SB.DS.learning, learningProps(L, out, url), [para(text), para(sourceLine(b.payload.source), 'gray')]);
+  await trashItem(ctx, it);
+  it.notion = page;
+  it.data.moved = { name: clip(out.name, 80), url: page.url };
+}
+
 async function trashItem(ctx, it) {
   if (!it.notion) return;
   try {
