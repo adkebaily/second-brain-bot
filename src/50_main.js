@@ -6,7 +6,7 @@ function prepare(update) {
   if (!m || String(m.chat?.id) !== SB.CHAT_ID || (cq && String(cq.from?.id) !== SB.CHAT_ID)) return null;
   const load = { chat_id: +SB.CHAT_ID };
   if (cq?.data?.startsWith('cb:')) load.cb_token = cq.data.slice(3);
-  if (!cq && m.text && !m.text.startsWith('/')) load.take_state = true;
+  if (!cq && (m.voice || m.audio || (m.text && !m.text.startsWith('/')))) load.take_state = true;
   if (!cq && /^\/undo\b/.test(m.text || '')) load.last_saved = true;
   return { update, load };
 }
@@ -67,7 +67,7 @@ function addItems(b, list) {
 async function extractSpans(ctx, L, b, spans, src, prefix) {
   ctx.stage = 'extract';
   const groups = await Promise.all(spans.map(async s => {
-    if (s.confidence < 0.6) return [{ type: s.type, state: 'needs_type', span: s.text_span, confidence: s.confidence, data: {}, warnings: [] }];
+    if (s.confidence < 0.6) return [{ type: s.type, state: 'needs_type', span: s.text_span, confidence: s.confidence, clarify: s.clarify || null, data: {}, warnings: [] }];
     const call = rid(6);
     const meta = { batch_id: b.id, input_type: src.input_type, prefix_used: prefix, router_type: s.type, router_confidence: s.confidence, _call: call };
     const its = await extractItem(ctx, L, s.type, s.text_span, src, meta);
@@ -80,11 +80,14 @@ async function extractSpans(ctx, L, b, spans, src, prefix) {
 
 // ---------- new content ----------
 const MEDIA_DOC = /^(image\/(jpeg|png|webp|heic|heif)|application\/pdf)$/;
-async function onContent(ctx, m) {
+const newBatch = (msgId, src) => ({ id: rid(12), chat_id: +SB.CHAT_ID, type: 'instant', status: 'open', telegram_message_id: msgId, attempts: 0, payload: { source: src, items: [] } });
+
+// chat = open conversation state (or null): text and voice go to the conversation unless it says "this is something to save".
+async function onContent(ctx, m, chat = null) {
   const ph = await tgSend(ctx, '⏳', null, { reply_parameters: { message_id: m.message_id } });
   const t = paris(new Date(m.date * 1000));
   const src = { input_type: 'text', text: (m.text || m.caption || '').trim(), message_date: t.date, message_time: t.time, messageDate: t.date };
-  const b = { id: rid(12), chat_id: +SB.CHAT_ID, type: 'instant', status: 'open', telegram_message_id: ph.message_id, attempts: 0, payload: { source: src, items: [] } };
+  const b = newBatch(ph.message_id, src);
   ctx.batch = b;
   const L = await lists(ctx);
   let file = null, kind = null;
@@ -119,6 +122,12 @@ async function onContent(ctx, m) {
     return;
   }
   if (!src.text && !file) { await tgEdit(ctx, ph.message_id, '🤷 Je n\'ai rien entendu.'); ctx.batch = null; return; }
+  if (chat && !file) {
+    ctx.batch = null;
+    if (!(await chatTurn(ctx, L, src.text, chat, ph.message_id)).capture) return;
+    ctx.batch = b;
+    if (chat.ref.turns?.some(x => x.who === 'Moi')) ctx.ops.push(chatStateOp(chat.ref)); // a real conversation stays open
+  }
   await processContent(ctx, L, b, file, kind);
 }
 
@@ -127,10 +136,19 @@ async function processContent(ctx, L, b, file, kind) {
   let routed;
   if (file) routed = { prefix: null, items: [{ type: kind === 'receipt' ? 'finance' : 'note', text_span: src.text, confidence: 1 }] };
   else { ctx.stage = 'router'; routed = await route(ctx, src.text, { batch_id: b.id, input_type: src.input_type }); }
-  const spans = routed.items.filter(i => i.type !== 'command_like');
-  if (!spans.length) { await tgEdit(ctx, b.telegram_message_id, '🤖 Rien à enregistrer. Les commandes : /help'); ctx.batch = null; ctx.logs.forEach(l => (l.batch_id = null)); return; }
+  const isTalk = i => i.type === 'chat' && i.confidence >= 0.6;
+  const spans = routed.items.filter(i => !isTalk(i)).map(i => (i.type === 'chat' ? { ...i, type: 'braindump' } : i));
+  const talk = routed.items.filter(isTalk).map(i => i.text_span).join('\n');
+  // chat said "that's something to save" but nobody knows what: ask with the type buttons
+  if (talk && (await chatTurn(ctx, L, talk, null, spans.length ? null : b.telegram_message_id)).capture) spans.push({ type: 'braindump', text_span: talk, confidence: 0.3 });
+  if (!spans.length) { ctx.batch = null; return; }
   const fresh = await extractSpans(ctx, L, b, spans, { ...src, file }, routed.prefix);
   await finalizeNew(ctx, L, b, fresh);
+  const ask = b.payload.items.find(i => i.state === 'needs_type' && i.clarify);
+  if (ask) {
+    b.payload.note = `❓ ${esc(ask.clarify)}\n<i>Réponds en texte ou touche un bouton.</i>`;
+    ctx.ops.push(chatStateOp({ pending_id: b.id, clarify: { idx: ask.idx }, turns: [{ who: 'Bot', text: ask.clarify }] }));
+  }
   await renderOut(ctx, b, L);
 }
 
@@ -163,6 +181,7 @@ async function onCallback(ctx, cq) {
     }
     return T(ctx, 'editMessageReplyMarkup', { chat_id: SB.CHAT_ID, message_id: cq.message.message_id, reply_markup: { inline_keyboard: replaceRows(cq.message.reply_markup, d.rows, clip(label, 60)) } });
   }
+  if (a === 'chatsave') return chatSave(ctx, cq, d);
   if (a === 'carddel') { ctx.ops.push({ op: 'card_del', card_last4: d.last4 }); ctx.db.card_map = (ctx.db.card_map || []).filter(c => c.card_last4 !== d.last4); return cardsMessage(ctx, cq.message.message_id); }
 
   const b = rowToBatch(ctx.db.pending);
@@ -198,13 +217,7 @@ async function onCallback(ctx, cq) {
       b.payload.note = `💳 Carte ••${d.card} → ${esc(d.name)} mémorisée.`;
     }
   } else if (a === 'type' && it) {
-    const src = { ...b.payload.source, file: null };
-    const call = rid(6);
-    const got = await extractItem(ctx, L, d.type, it.span, src, { batch_id: b.id, input_type: src.input_type, router_type: d.type, router_confidence: 1, _call: call });
-    const [first, ...rest] = got.map(g => ({ ...g, span: it.span, _call: call }));
-    first.idx = it.idx; items[it.idx] = first;
-    addItems(b, rest);
-    await finalizeNew(ctx, L, b, [first, ...rest]);
+    await retype(ctx, L, b, it, d.type, it.span);
   } else if (a === 'photo') {
     b.payload.photo_ask = false;
     if (d.kind === 'ignore') b.status = 'cancelled';
@@ -225,6 +238,17 @@ async function onCallback(ctx, cq) {
     await expandIdea(ctx, L, b, it);
   }
   await renderOut(ctx, b, L);
+}
+
+// Re-extracts an unclear item as `type` (type button or a ❓ answer), in place.
+async function retype(ctx, L, b, it, type, text) {
+  const src = { ...b.payload.source, file: null };
+  const call = rid(6);
+  const got = await extractItem(ctx, L, type, text, src, { batch_id: b.id, input_type: src.input_type, router_type: type, router_confidence: 1, _call: call });
+  const [first, ...rest] = got.map(g => ({ ...g, span: text, _call: call }));
+  first.idx = it.idx; b.payload.items[it.idx] = first;
+  addItems(b, rest);
+  await finalizeNew(ctx, L, b, [first, ...rest]);
 }
 
 // ---------- ✏️ edit replies ----------
@@ -451,7 +475,8 @@ async function mainEngine(ctx, prep) {
   const st = ctx.db.state;
   if (st?.awaiting === 'edit_batch' && m.text) return onEditText(ctx, m, st);
   if (st?.awaiting === 'other_date' && m.text) return onOtherDate(ctx, m, st);
-  return onContent(ctx, m);
+  if (st && st.awaiting !== 'chat') ctx.ops.push({ op: 'state_set', row: { chat_id: +SB.CHAT_ID, awaiting: st.awaiting, ref: st.ref } }); // a voice note doesn't answer an edit: keep waiting
+  return onContent(ctx, m, st?.awaiting === 'chat' ? st : null);
 }
 
 // ---------- ops for brain.apply ----------

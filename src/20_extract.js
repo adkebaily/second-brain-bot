@@ -1,13 +1,13 @@
 // ===== Router, extractors, post-processing, validation =====
 
-const PREFIX = { $: 'finance', '!': 'task', '#': 'note', '?': 'braindump' };
+const PREFIX = { $: 'finance', '!': 'task', '#': 'note', '?': 'braindump', '@': 'chat' };
 const ACCOUNT_ALIASES = [
   [/esp[eè]ces|cash|liquide/i, 'Cash Wallet'],
   [/[ée]pargne|savings|binance/i, 'Savings Account'],
 ];
 
 async function route(ctx, text, meta = {}) {
-  const m = /^\s*([$!#?])\s*/.exec(text);
+  const m = /^\s*([$!#?@])\s*/.exec(text);
   if (m) return { prefix: m[1], items: [{ type: PREFIX[m[1]], text_span: text.slice(m[0].length).trim(), confidence: 1 }] };
   const { out } = await llm(ctx, { kind: 'router', system: PROMPTS.router.system, schema: PROMPTS.router.schema, parts: [{ text }], meta });
   const items = (out.items || []).filter(i => i.text_span && i.text_span.trim());

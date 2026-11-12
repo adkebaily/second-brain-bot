@@ -8,7 +8,7 @@ import path from 'node:path';
 const dir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'src');
 const lib = fs.readdirSync(dir).filter(f => f.endsWith('.js')).sort().map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 const S = vm.createContext({ Buffer, setTimeout, Intl, console, Date, Math, JSON });
-vm.runInContext(lib + '\nthis.X = { SB, paris, addDays, fmtDay, calendar, priorityFor, postFinance, validateFinance, needsAccount, postTask, postBraindump, applyChange, renderBatch, finish, makeCtx, prepare, dueClaims, parisMidnight, sim, route, computeStatus, weekStart, replaceRows };', S);
+vm.runInContext(lib + '\nthis.X = { SB, paris, addDays, fmtDay, calendar, priorityFor, postFinance, validateFinance, needsAccount, postTask, postBraindump, applyChange, renderBatch, finish, makeCtx, prepare, dueClaims, parisMidnight, sim, route, computeStatus, weekStart, replaceRows, chatTurn, mainEngine };', S);
 const X = S.X;
 X.SB.CHAT_ID = '111111111'; // placeholder in src; real id comes from config.local.json at deploy
 // values from the vm realm have other prototypes; compare as plain JSON
@@ -181,6 +181,7 @@ test('allowlist + load params', () => {
   assert.equal(X.prepare(msg(42, 'hi')), null);
   deq(X.prepare(msg(111111111, 'hello')).load, { chat_id: 111111111, take_state: true });
   deq(X.prepare(msg(111111111, '/undo')).load, { chat_id: 111111111, last_saved: true });
+  deq(X.prepare({ message: { message_id: 1, chat: { id: 111111111 }, from: { id: 111111111 }, voice: { file_id: 'v' }, date: 0 } }).load, { chat_id: 111111111, take_state: true });
   const cq = { callback_query: { id: 'q', from: { id: 111111111 }, data: 'cb:abc', message: { chat: { id: 111111111 } } } };
   deq(X.prepare(cq).load, { chat_id: 111111111, cb_token: 'abc' });
   assert.equal(X.prepare({ callback_query: { ...cq.callback_query, from: { id: 7 } } }), null);
@@ -188,7 +189,7 @@ test('allowlist + load params', () => {
 
 test('prefix shortcuts skip the router', async () => {
   const c = ctxAt(T0);
-  for (const [p, type] of [['$', 'finance'], ['!', 'task'], ['#', 'note'], ['?', 'braindump']]) {
+  for (const [p, type] of [['$', 'finance'], ['!', 'task'], ['#', 'note'], ['?', 'braindump'], ['@', 'chat']]) {
     const r = await X.route(c, `${p} quelque chose`);
     assert.equal(r.items[0].type, type);
     assert.equal(r.items[0].text_span, 'quelque chose');
@@ -204,4 +205,74 @@ test('brief buttons: tapped task rows collapse to one label', () => {
 test('similarity is accent/case-insensitive', () => {
   assert.ok(X.sim('Appeler la CAF', 'appeler la caf') > 0.95);
   assert.ok(X.sim('Courses Lidl', 'Réviser probas') < 0.2);
+});
+
+// ---------- conversation ----------
+// Fake n8n http: Gemini answers come from `replies` in order; Telegram/Notion calls are recorded.
+function fakeCtx(replies, db = {}) {
+  const c = ctxAt(T0, db);
+  const calls = [];
+  c.helpers = { httpRequest: async o => {
+    calls.push(o);
+    if (o.url.includes('generativelanguage')) return { statusCode: 200, body: { candidates: [{ content: { parts: [{ text: JSON.stringify(replies.shift()) }] } }], usageMetadata: {} } };
+    if (o.url.includes('api.notion.com')) return { statusCode: 200, body: { results: [{ id: 't1', properties: { Name: { type: 'title', title: [{ plain_text: 'Appeler la CAF' }] }, 'Due date': { date: { start: '2026-11-12' } }, Priority: { select: { name: 'High' } } }, url: 'u' }], has_more: false } };
+    return { statusCode: 200, body: { ok: true, result: { message_id: 99 } } };
+  } };
+  return { c, calls };
+}
+const R = o => ({ reply: '', action: 'continue', resolved_type: 'none', proposals: [], lookups: [], ...o });
+
+test('chat: one lookup round, escaped reply, proposals become buttons only on end', async () => {
+  const { c, calls } = fakeCtx([R({ lookups: [{ kind: 'tasks', to: '2026-11-12' }] }), R({ reply: 'Demain : appeler la CAF <urgent>.', action: 'end', proposals: [{ type: 'task', text: '! appeler la CAF demain' }, { type: 'finance', text: 'x' }] })]);
+  const r = await X.chatTurn(c, L, 'mes tâches demain ?', null, 5);
+  assert.equal(r.capture, false);
+  const gem = calls.filter(o => o.url.includes('generativelanguage'));
+  assert.equal(gem.length, 2);
+  assert.match(gem[1].body.contents[0].parts[0].text, /Appeler la CAF · 2026-11-12 · High/);
+  const edit = calls.find(o => o.url.endsWith('/editMessageText'));
+  assert.match(edit.body.text, /&lt;urgent&gt;/);
+  assert.equal(edit.body.reply_markup.inline_keyboard.length, 1); // finance proposal dropped
+  assert.equal(c.callbacks[0].action, 'chatsave');
+  assert.equal(c.callbacks[0].data.text, 'appeler la CAF demain'); // prefix stripped
+  assert.equal(c.ops.filter(o => o.op === 'state_set').length, 0);
+});
+
+test('chat: mid-conversation keeps state and shows no buttons', async () => {
+  const { c, calls } = fakeCtx([R({ reply: 'Pour quel but ?', proposals: [{ type: 'task', text: 'y' }] })]);
+  await X.chatTurn(c, L, 'je veux lancer un projet', null, 5);
+  assert.equal(calls.find(o => o.url.endsWith('/editMessageText')).body.reply_markup.inline_keyboard.length, 0);
+  deq(c.ops.find(o => o.op === 'state_set').row.ref.turns.map(t => t.who), ['Moi', 'Bot']);
+});
+
+test('chat: never more than 2 LLM calls; wraps up at the turn limit; capture hands back', async () => {
+  let k = fakeCtx([R({ lookups: [{ kind: 'tasks' }] }), R({ reply: 'ok', lookups: [{ kind: 'tasks' }] })]);
+  await X.chatTurn(k.c, L, 'x', null, 5);
+  assert.equal(k.calls.filter(o => o.url.includes('generativelanguage')).length, 2);
+
+  const turns = Array.from({ length: 5 }, (_, i) => [{ who: 'Moi', text: 'q' + i }, { who: 'Bot', text: 'a' + i }]).flat();
+  k = fakeCtx([R({ reply: 'Conclusion.' })]);
+  await X.chatTurn(k.c, L, 'q5', { awaiting: 'chat', ref: { turns } }, 5);
+  assert.match(k.calls[0].body.contents[0].parts[0].text, /WRAP UP/);
+  assert.equal(k.c.ops.filter(o => o.op === 'state_set').length, 0);
+
+  k = fakeCtx([R({ action: 'capture' })]);
+  deq(await X.chatTurn(k.c, L, 'payé 4€ café', { awaiting: 'chat', ref: { turns: [] } }, 5), { capture: true });
+  assert.equal(k.calls.filter(o => o.url.includes('telegram')).length, 0);
+});
+
+test('engine: chat message gets no pending row; unclear message asks ❓ and opens a clarify state', async () => {
+  const cache = { lists: { value: L, fetched_at: new Date().toISOString() } };
+  const m = text => ({ update: { message: { message_id: 3, chat: { id: 111111111 }, from: { id: 111111111 }, text, date: 1762862400 } } });
+  let k = fakeCtx([{ items: [{ type: 'chat', text_span: 'il me reste combien en resto ?', confidence: 0.93 }] }, R({ reply: '12 € sur 60 €.', action: 'end' })], { cache });
+  await X.mainEngine(k.c, m('il me reste combien en resto ?'));
+  assert.equal(k.c.batch, null);
+  assert.equal(X.finish(k.c).filter(o => o.op === 'pending').length, 0);
+  assert.match(k.calls.find(o => o.url.endsWith('/editMessageText')).body.text, /12 € sur 60 €/);
+
+  k = fakeCtx([{ items: [{ type: 'braindump', text_span: 'le truc de marc', confidence: 0.3, clarify: 'Tâche ou idée ?' }] }], { cache });
+  await X.mainEngine(k.c, m('le truc de marc'));
+  const st = k.c.ops.find(o => o.op === 'state_set');
+  assert.equal(st.row.awaiting, 'chat');
+  deq(st.row.ref.clarify, { idx: 0 });
+  assert.match(k.calls.find(o => o.url.endsWith('/editMessageText')).body.text, /❓ Tâche ou idée \?/);
 });

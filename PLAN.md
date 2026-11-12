@@ -38,4 +38,4 @@
 Every branch in the spec's list, with a `TEST:` prefix in titles so I can trash the test pages afterwards (I will list them and ask before trashing).
 
 ## Out of scope for phase 1
-`/ask` agent (phase 2). Currency conversion (non-EUR is flagged only). Multi-user.
+~~`/ask` agent (phase 2)~~ → done as the conversation mode (`src/55_chat.js`), 2026-11-12. Currency conversion (non-EUR is flagged only). Multi-user.

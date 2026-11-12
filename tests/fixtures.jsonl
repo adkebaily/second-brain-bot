@@ -10,7 +10,7 @@
 {"today": "2026-11-11", "id": "r10", "stage": "router", "text": "idée d'app: tracker de révisions avec répétition espacée", "expected": {"types": ["braindump"]}}
 {"today": "2026-11-11", "id": "r11", "stage": "router", "text": "CAF versée 180€ + virer 50 sur épargne", "expected": {"types": ["finance"]}}
 {"today": "2026-11-11", "id": "r12", "stage": "router", "text": "notes réunion stage: tuteur = M. Durand, sujet = agents RAG, rapport intermédiaire 10 pages max, soutenance 20 min. faut que j'envoie le plan à M. Durand avant vendredi", "expected": {"types": ["note", "task"]}}
-{"today": "2026-11-11", "id": "r13", "stage": "router", "text": "annule", "expected": {"types": ["command_like"]}}
+{"today": "2026-11-11", "id": "r13", "stage": "router", "text": "annule", "expected": {"types": ["chat"]}}
 {"today": "2026-11-11", "id": "r14", "stage": "router", "text": "spent 9 on spotify", "expected": {"types": ["finance"]}}
 {"today": "2026-11-11", "id": "r15", "stage": "router", "text": "tester obsidian pour prendre des notes", "expected": {"types": ["braindump"]}}
 {"today": "2026-11-11", "id": "r16", "stage": "router", "text": "rdv dentiste mardi 14h", "expected": {"types": ["task"]}}

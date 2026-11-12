@@ -96,7 +96,7 @@ def main():
     print(f"\n=== Eval {time.strftime('%Y-%m-%d %H:%M')} — {len(rows)} cases ({len(skipped)} receipt slots skipped: {', '.join(skipped)})")
     if router_ok:
         print(f'\nRouter exact-match accuracy: {sum(router_ok)}/{len(router_ok)} = {sum(router_ok) / len(router_ok):.0%}')
-        labels = ['finance', 'task', 'note', 'braindump', 'command_like', '∅']
+        labels = ['finance', 'task', 'note', 'braindump', 'chat', '∅']
         print('Confusion (rows = expected, cols = predicted):')
         print(' ' * 13 + ''.join(f'{l[:9]:>10}' for l in labels))
         for a in labels:
